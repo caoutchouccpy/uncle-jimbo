@@ -1,0 +1,1047 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Uncle Jimbo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Nunito:wght@600;700;800;900&display=swap">
+<style>
+/* Layout: one full-screen 3D living room; Jimbo in the middle, round action buttons on both sides, big mic at the bottom, speech bubble on top. Single dark cozy look by choice. */
+:root{
+  --night:#1a1020;
+  --pink:#ff6fb5;
+  --pink-deep:#b8457f;
+  --gold:#ffcf3a;
+  --gold-deep:#b38a12;
+  --cream:#fff6ea;
+  --ink:#1c0f1f;
+  --glass:#1c0f1fc7;
+  --line:#ffffff26;
+  --muted:#d9c6e2;
+  --display:"Bagel Fat One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--night);color:var(--cream);font-family:var(--body);font-size:15px;overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+.app{position:relative;height:100%;overflow:hidden}
+.app canvas{display:block;width:100%;height:100%;outline:none;touch-action:none}
+.vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 70% at 50% 45%, rgba(0,0,0,0) 55%, rgba(14,7,3,.42) 100%)}
+
+.top{position:absolute;top:14px;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));display:flex;align-items:center;justify-content:space-between;gap:12px;pointer-events:none}
+.brand{font-family:var(--display);font-size:clamp(24px,3.4vw,38px);line-height:1;color:var(--cream);text-shadow:0 3px 0 var(--ink),0 0 24px #ff6fb555}
+.brand b{color:var(--gold);font-weight:400}
+.tools{display:flex;gap:8px;pointer-events:auto}
+.round{font:inherit;width:44px;height:44px;border-radius:50%;border:2px solid var(--line);background:var(--glass);color:var(--cream);display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(6px)}
+.round svg{width:20px;height:20px}
+.round[aria-pressed="false"]{color:var(--muted);opacity:.75}
+.round:focus-visible,.act:focus-visible,.mic:focus-visible,#msg:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+
+.bubble{position:absolute;left:50%;top:72px;transform:translateX(-50%);width:max-content;max-width:min(520px,calc(100% - 32px));padding:12px 18px;border-radius:22px;background:var(--cream);color:var(--ink);font-weight:800;font-size:16px;line-height:1.4;text-align:center;box-shadow:0 6px 0 #00000040;transition:opacity .25s,transform .25s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;margin-left:-10px;border:10px solid transparent;border-bottom:0;border-top-color:var(--cream)}
+.bubble.off{opacity:0;transform:translateX(-50%) translateY(-8px);pointer-events:none}
+.dots{display:inline-flex;gap:5px;padding:4px 2px}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--ink);opacity:.6;animation:bounce 1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes bounce{40%{transform:translateY(-5px);opacity:.25}}
+
+.side{position:absolute;bottom:calc(150px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.side.l{left:max(16px,env(safe-area-inset-left,0px))}
+.side.r{right:max(16px,env(safe-area-inset-right,0px))}
+.act{font:inherit;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:0;color:var(--cream);cursor:pointer;padding:0;font-weight:800;font-size:12.5px;text-shadow:0 2px 0 var(--ink)}
+.act span{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:var(--ink);box-shadow:0 4px 0 var(--gold-deep);transition:transform .1s}
+.act span svg{width:30px;height:30px}
+.act:active span{transform:translateY(3px);box-shadow:0 1px 0 var(--gold-deep)}
+.act[aria-pressed="true"] span{background:var(--pink);box-shadow:0 4px 0 var(--pink-deep)}
+
+.bottom{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:10px;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));pointer-events:none}
+.bottom > *{pointer-events:auto}
+.heard{max-width:min(520px,100%);padding:8px 14px;border-radius:14px;background:var(--glass);border:1px solid var(--line);font-weight:700;text-align:center;line-height:1.35}
+.heard em{font-style:normal;color:var(--muted)}
+.mic{font:inherit;width:84px;height:84px;border-radius:50%;border:0;cursor:pointer;background:var(--pink);color:var(--ink);display:grid;place-items:center;box-shadow:0 5px 0 var(--pink-deep);transition:transform .1s}
+.mic svg{width:36px;height:36px}
+.mic:active{transform:translateY(3px);box-shadow:0 2px 0 var(--pink-deep)}
+.mic[data-state="listening"]{background:#ff4d6d;color:#fff;animation:ring 1.2s infinite}
+.mic[data-state="busy"]{background:#4a3352;color:var(--muted);box-shadow:0 5px 0 #24152a}
+.mic:disabled{background:#4a3352;color:var(--muted);box-shadow:0 5px 0 #24152a;cursor:default}
+@keyframes ring{0%{box-shadow:0 5px 0 #a3243c,0 0 0 0 #ff4d6d99}100%{box-shadow:0 5px 0 #a3243c,0 0 0 22px #ff4d6d00}}
+.micLabel{font-weight:800;font-size:13px;text-shadow:0 2px 0 var(--ink)}
+.typeForm{display:flex;gap:8px;width:min(480px,100%)}
+#msg{flex:1;min-width:0;font:inherit;font-weight:700;color:var(--cream);background:var(--glass);border:2px solid var(--line);border-radius:999px;padding:11px 16px;user-select:text}
+#msg::placeholder{color:var(--muted)}
+.sendBtn{font:inherit;font-weight:900;border:0;border-radius:999px;padding:0 18px;background:var(--gold);color:var(--ink);box-shadow:0 3px 0 var(--gold-deep);cursor:pointer}
+.toast{position:absolute;left:50%;bottom:calc(150px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:max-content;max-width:min(440px,calc(100% - 190px));padding:9px 14px;border-radius:12px;background:var(--glass);border:1px solid var(--line);color:var(--cream);font-weight:700;font-size:13px;text-align:center}
+.toast.low{top:auto;bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+
+/* ---------- Goofy glossy toy buttons: thick ink outline, chunky drop, specular blob, squash on press ---------- */
+.round,.act span,.mic,.sendBtn{border:3px solid var(--ink)}
+.round{width:50px;height:50px;color:var(--cream);
+  background:radial-gradient(ellipse 34% 24% at 34% 24%,rgba(255,255,255,.9),rgba(255,255,255,0) 100%),linear-gradient(180deg,#6b4880,#2e1a3b);
+  box-shadow:0 5px 0 var(--ink),inset 0 -6px 0 rgba(0,0,0,.28),inset 0 3px 0 rgba(255,255,255,.2);
+  transition:transform .18s cubic-bezier(.3,1.8,.5,1),box-shadow .1s;backdrop-filter:none}
+.round:nth-child(2){border-radius:48% 52% 46% 54%/52% 48% 52% 48%}
+.round[aria-pressed="false"]{opacity:1;color:#bba8c6;background:radial-gradient(ellipse 34% 24% at 34% 24%,rgba(255,255,255,.7),rgba(255,255,255,0) 100%),linear-gradient(180deg,#4b3b55,#241a2b)}
+.round svg{width:22px;height:22px;filter:drop-shadow(0 1px 0 rgba(0,0,0,.4))}
+.act{gap:7px;font-family:var(--display);font-weight:400;font-size:16px;letter-spacing:.02em;color:var(--cream);
+  text-shadow:2px 2px 0 var(--ink),-1px -1px 0 var(--ink),1px -1px 0 var(--ink),-1px 1px 0 var(--ink)}
+.act span{width:74px;height:74px;border-radius:46% 54% 52% 48%/56% 50% 50% 44%;transform:rotate(-5deg);color:var(--ink);
+  background:radial-gradient(ellipse 32% 22% at 33% 25%,rgba(255,255,255,.95),rgba(255,255,255,0) 100%),linear-gradient(180deg,#ffe36b,#f4a21c);
+  box-shadow:0 6px 0 var(--ink),inset 0 -8px 0 rgba(150,70,0,.35),inset 0 4px 0 rgba(255,255,255,.55);transition:transform .18s cubic-bezier(.3,1.8,.5,1)}
+.act span svg{width:34px;height:34px;stroke-width:2.6}
+.act[aria-pressed="true"] span{background:radial-gradient(ellipse 32% 22% at 33% 25%,rgba(255,255,255,.95),rgba(255,255,255,0) 100%),linear-gradient(180deg,#ff9ccc,#e2418f);
+  box-shadow:0 6px 0 var(--ink),inset 0 -8px 0 rgba(120,0,50,.35),inset 0 4px 0 rgba(255,255,255,.5);animation:boogie .49s ease-in-out infinite alternate}
+@keyframes boogie{from{transform:rotate(-9deg) translateY(0)}to{transform:rotate(7deg) translateY(-4px)}}
+@keyframes wobble{0%{transform:rotate(-5deg) scale(1)}30%{transform:rotate(6deg) scale(1.08)}55%{transform:rotate(-4deg) scale(1.03)}80%{transform:rotate(2deg)}100%{transform:rotate(-5deg)}}
+.round:hover{animation:wobble .5s}
+.act:hover span{animation:wobble .5s}
+.act[aria-pressed="true"]:hover span{animation:boogie .49s ease-in-out infinite alternate}
+.round:active{transform:translateY(4px) scale(1.1,.86);box-shadow:0 1px 0 var(--ink),inset 0 -3px 0 rgba(0,0,0,.28)}
+.act:active span{transform:translateY(5px) scale(1.12,.84) rotate(-5deg);box-shadow:0 1px 0 var(--ink),inset 0 -4px 0 rgba(150,70,0,.35)}
+.mic{position:relative;width:100px;height:96px;border-radius:50% 50% 47% 53%/58% 56% 44% 42%;color:var(--ink);overflow:visible;
+  background:radial-gradient(ellipse 30% 20% at 32% 30%,rgba(255,255,255,.95),rgba(255,255,255,0) 100%),linear-gradient(180deg,#ff8db4,#e0386b);
+  box-shadow:0 7px 0 var(--ink),inset 0 -10px 0 rgba(120,0,40,.35),inset 0 5px 0 rgba(255,255,255,.45);transition:transform .18s cubic-bezier(.3,1.8,.5,1)}
+.mic svg{width:34px;height:34px;margin-top:16px}
+.mic .ic-off{display:none}
+.mic[data-state="muted"] .ic-on{display:none}
+.mic[data-state="muted"] .ic-off{display:block}
+.mic:active{transform:translateY(5px) scale(1.12,.84);box-shadow:0 2px 0 var(--ink),inset 0 -5px 0 rgba(120,0,40,.35)}
+.mic[data-state="listening"]{background:radial-gradient(ellipse 30% 20% at 32% 30%,rgba(255,255,255,.95),rgba(255,255,255,0) 100%),linear-gradient(180deg,#ff8db4,#e0386b);color:var(--ink);animation:jelly 1.8s ease-in-out infinite}
+.mic[data-state="listening"]::after{content:"";position:absolute;inset:-9px;border-radius:inherit;border:3px solid #ff8db4;opacity:.0;animation:ringout 1.8s ease-out infinite}
+.mic[data-state="muted"]{background:radial-gradient(ellipse 30% 20% at 32% 30%,rgba(255,255,255,.7),rgba(255,255,255,0) 100%),linear-gradient(180deg,#a596ad,#5e4c69);color:#2a1d30;animation:none}
+.mic[data-state="sleep"]{background:radial-gradient(ellipse 30% 20% at 32% 30%,rgba(255,255,255,.95),rgba(255,255,255,0) 100%),linear-gradient(180deg,#ffe36b,#f4a21c);animation:nudge 2.4s ease-in-out infinite}
+.mic[data-state="off"]{background:radial-gradient(ellipse 30% 20% at 32% 30%,rgba(255,255,255,.6),rgba(255,255,255,0) 100%),linear-gradient(180deg,#7c6b85,#3d2f45);color:#cbb9d4}
+@keyframes jelly{0%,100%{transform:scale(1,1)}25%{transform:scale(1.06,.94)}50%{transform:scale(.96,1.05)}75%{transform:scale(1.02,.98)}}
+@keyframes ringout{0%{opacity:.8;transform:scale(.95)}100%{opacity:0;transform:scale(1.25)}}
+@keyframes nudge{0%,70%,100%{transform:rotate(0)}76%{transform:rotate(-9deg)}84%{transform:rotate(8deg)}92%{transform:rotate(-4deg)}}
+.eyes{position:absolute;left:50%;top:-14px;transform:translateX(-50%);display:flex;gap:4px;pointer-events:none}
+.eye{width:24px;height:26px;border-radius:50%;background:#fff;border:3px solid var(--ink);display:grid;place-items:center;box-shadow:inset 0 -3px 0 rgba(0,0,0,.12)}
+.pupil{width:10px;height:11px;border-radius:50%;background:var(--ink);transition:transform .08s linear}
+.mic[data-state="muted"] .eye{height:10px;margin-top:10px;border-radius:0 0 50% 50%;border-top-width:4px}
+.mic[data-state="muted"] .pupil{display:none}
+.micLabel{font-family:var(--display);font-weight:400;font-size:15px;letter-spacing:.02em;text-shadow:2px 2px 0 var(--ink),-1px -1px 0 var(--ink),1px -1px 0 var(--ink),-1px 1px 0 var(--ink)}
+.sendBtn{font-family:var(--display);font-weight:400;font-size:16px;color:var(--ink);
+  background:radial-gradient(ellipse 30% 25% at 30% 25%,rgba(255,255,255,.9),rgba(255,255,255,0) 100%),linear-gradient(180deg,#ffe36b,#f4a21c);box-shadow:0 4px 0 var(--ink),inset 0 -4px 0 rgba(150,70,0,.35)}
+.sendBtn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+#msg{border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink)}
+@media (prefers-reduced-motion:reduce){.mic,.act span,.round,.mic::after{animation:none!important}}
+@media (max-width:600px){
+  .side{bottom:calc(132px + env(safe-area-inset-bottom,0px));gap:10px}
+  .act span{width:52px;height:52px}
+  .act span svg{width:26px;height:26px}
+  .mic{width:74px;height:74px}
+  .bubble{top:64px;font-size:15px}
+}
+@media (prefers-reduced-motion:reduce){.dots i,.mic[data-state="listening"]{animation:none}}
+</style>
+
+<div class="app" id="app">
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="top">
+    <div class="brand">Uncle <b>Jimbo</b></div>
+    <div class="tools">
+      <button class="round" id="soundBtn" type="button" aria-pressed="true" title="Son">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>
+      </button>
+      <button class="round" id="kbBtn" type="button" aria-pressed="false" title="Écrire à Jimbo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="bubble" id="bubble" role="status" aria-live="polite">Ahhh, un invité ! Parle-moi, je t'écoute. Et pas de coups bas, hein… surtout pas dans les jambes.</div>
+  <div class="toast" id="toast" hidden></div>
+
+  <div class="side l">
+  </div>
+  <div class="side r">
+    <button class="act" id="danceBtn" type="button" aria-pressed="false"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>Danse</button>
+  </div>
+
+  <div class="bottom">
+    <div class="heard" id="heard" hidden></div>
+    <form class="typeForm" id="typeForm" autocomplete="off" hidden>
+      <input id="msg" type="text" placeholder="Écris à Uncle Jimbo…" maxlength="600" aria-label="Message pour Uncle Jimbo">
+      <button class="sendBtn" type="submit">Dire</button>
+    </form>
+    <button class="mic" id="micBtn" type="button" data-state="sleep" aria-label="Couper le micro">
+      <span class="eyes" aria-hidden="true"><i class="eye"><b class="pupil"></b></i><i class="eye"><b class="pupil"></b></i></span>
+      <svg class="ic-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/></svg>
+      <svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M3 3l18 18"/></svg>
+    </button>
+    <div class="micLabel" id="micLabel">Touche l'écran pour ouvrir le micro</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/RoundedBoxGeometry.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.35.0/dist/lib.iife.js"></script>
+<script>
+(function(){
+"use strict";
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = id => document.getElementById(id);
+
+/* ================= SCENE ================= */
+const app = $("app");
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+renderer.physicallyCorrectLights = false;
+app.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1020);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 60);
+camera.position.set(0, 1.2, 4.6);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.0, -0.3);
+controls.enablePan = false;
+controls.enableDamping = true;
+controls.minDistance = 3.0; controls.maxDistance = 6.2;
+controls.minPolarAngle = 1.2; controls.maxPolarAngle = 1.62;
+controls.minAzimuthAngle = -0.5; controls.maxAzimuthAngle = 0.5;
+
+const M = (color, rough=0.7, extra={}) => new THREE.MeshStandardMaterial(Object.assign({color, roughness:rough, metalness:0}, extra));
+const RB = (w,h,d,r=0.06) => THREE.RoundedBoxGeometry ? new THREE.RoundedBoxGeometry(w,h,d,4,r) : new THREE.BoxGeometry(w,h,d);
+function canvasTex(w,h,draw,repeat){
+  const c=document.createElement("canvas"); c.width=w; c.height=h; draw(c.getContext("2d"),w,h);
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.anisotropy=8;
+  if(repeat){ t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(repeat[0],repeat[1]); }
+  return t;
+}
+function mesh(geo, mat, x=0, y=0, z=0, parent=scene){ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); parent.add(m); return m; }
+
+/* ---------- Lights (the HDRI gives ambient light and reflections once loaded) ---------- */
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+/* Dimmed, warm evening light: the lit chandelier is the main source (soft shadows from above),
+   a warm spot from the front keeps Jimbo readable, a faint cool fill lifts the shadows. */
+const hemi = new THREE.HemisphereLight(0xffe6c8, 0x2a1c14, 0.2); scene.add(hemi);
+const key = new THREE.SpotLight(0xffd9b0, 0.75, 14, 0.7, 0.85, 1.2);
+key.position.set(2.0, 3.2, 3.6); key.target.position.set(0, 0.9, -0.3); scene.add(key, key.target);
+key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
+key.shadow.camera.near = 1; key.shadow.camera.far = 12;
+const CHAND = new THREE.Vector3(0, 2.5, -0.5);
+const chandLight = new THREE.PointLight(0xffb469, 1.7, 8, 2); chandLight.position.copy(CHAND).add(new THREE.Vector3(0,-0.08,0)); scene.add(chandLight);
+chandLight.castShadow = true; chandLight.shadow.mapSize.set(1024, 1024); chandLight.shadow.bias = -0.003; chandLight.shadow.normalBias = 0.03; chandLight.shadow.camera.near = 0.15; chandLight.shadow.radius = 3;
+const ceilGlow = new THREE.PointLight(0xffc286, 0.55, 2.6, 2); ceilGlow.position.set(0, 2.85, -0.5); scene.add(ceilGlow);
+const fill = new THREE.DirectionalLight(0xc9d6ff, 0.12); fill.position.set(-3, 2.5, 2); scene.add(fill);
+
+/* Chandelier bulbs: small hot cores + additive halos at each of the 6 shades, and one wide soft glow */
+const glowTex = (()=>{ const c=document.createElement("canvas"); c.width=c.height=128; const x=c.getContext("2d");
+  const g=x.createRadialGradient(64,64,0,64,64,64); g.addColorStop(0,"rgba(255,236,200,1)"); g.addColorStop(.25,"rgba(255,190,110,.55)"); g.addColorStop(.6,"rgba(255,150,70,.12)"); g.addColorStop(1,"rgba(255,140,60,0)");
+  x.fillStyle=g; x.fillRect(0,0,128,128); const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return t; })();
+const SHADES=[[-0.268,2.543,-0.36],[0.259,2.543,-0.345],[-0.257,2.543,-0.66],[-0.001,2.543,-0.198],[0.268,2.542,-0.64],[0.011,2.542,-0.802]];
+const halos=[];
+SHADES.forEach(([x,y,z])=>{
+  const core=new THREE.Mesh(new THREE.SphereGeometry(0.018,10,8), new THREE.MeshBasicMaterial({color:0xfff2d6})); core.position.set(x,y-0.01,z); scene.add(core);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex, color:0xffd8a8, transparent:true, opacity:0.85, blending:THREE.AdditiveBlending, depthWrite:false}));
+  sp.position.set(x,y,z); sp.scale.setScalar(0.42); scene.add(sp); halos.push(sp);
+});
+const bigHalo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex, color:0xffb070, transparent:true, opacity:0.22, blending:THREE.AdditiveBlending, depthWrite:false}));
+bigHalo.position.copy(CHAND); bigHalo.scale.setScalar(1.9); scene.add(bigHalo); halos.push(bigHalo);
+
+/* Dust motes drifting through the warm light */
+const DUST=380, dustGeo=new THREE.BufferGeometry(), dustPos=new Float32Array(DUST*3), dustCol=new Float32Array(DUST*3), dustSeed=[];
+for(let i=0;i<DUST;i++){
+  dustPos[i*3]=(Math.random()*2-1)*2.8; dustPos[i*3+1]=0.2+Math.random()*2.7; dustPos[i*3+2]=-1.9+Math.random()*4.2;
+  dustSeed.push({a:Math.random()*6.28, s:0.02+Math.random()*0.05, r:0.15+Math.random()*0.35});
+}
+dustGeo.setAttribute("position", new THREE.BufferAttribute(dustPos,3));
+dustGeo.setAttribute("color", new THREE.BufferAttribute(dustCol,3));
+const dustTex=(()=>{ const c=document.createElement("canvas"); c.width=c.height=32; const x=c.getContext("2d"); const g=x.createRadialGradient(16,16,0,16,16,16); g.addColorStop(0,"rgba(255,255,255,1)"); g.addColorStop(.4,"rgba(255,255,255,.35)"); g.addColorStop(1,"rgba(255,255,255,0)"); x.fillStyle=g; x.fillRect(0,0,32,32); return new THREE.CanvasTexture(c); })();
+const dust=new THREE.Points(dustGeo, new THREE.PointsMaterial({size:0.022, map:dustTex, vertexColors:true, transparent:true, opacity:0.9, blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true}));
+scene.add(dust);
+const _dv=new THREE.Vector3(), _keyDir=new THREE.Vector3();
+function updateDust(t, dt){
+  _keyDir.copy(key.target.position).sub(key.position).normalize();
+  const lightK=chandLight.intensity/1.7;
+  for(let i=0;i<DUST;i++){
+    const s=dustSeed[i], j=i*3;
+    dustPos[j]+=Math.sin(t*0.3+s.a)*s.s*dt*0.6;
+    dustPos[j+1]+=(Math.sin(t*0.21+s.a*2)*0.5-0.15)*s.s*dt;
+    dustPos[j+2]+=Math.cos(t*0.25+s.a)*s.s*dt*0.6;
+    if(dustPos[j+1]<0.15){ dustPos[j+1]=2.9; }
+    if(dustPos[j+1]>2.95){ dustPos[j+1]=0.2; }
+    // brighter near the chandelier and inside the key light's cone, barely visible elsewhere
+    _dv.set(dustPos[j],dustPos[j+1],dustPos[j+2]);
+    const dc=_dv.distanceTo(CHAND), near=Math.max(0,1-dc/2.2)*lightK;
+    _dv.sub(key.position); const along=_dv.dot(_keyDir), perp=Math.sqrt(Math.max(0,_dv.lengthSq()-along*along)), cone=along>0?Math.max(0,1-perp/(along*0.7)):0;
+    const tw=0.75+0.25*Math.sin(t*2+s.a*5), b=(0.06+0.75*near*near+0.35*cone)*tw;
+    dustCol[j]=b; dustCol[j+1]=b*0.86; dustCol[j+2]=b*0.66;
+  }
+  dustGeo.attributes.position.needsUpdate=true; dustGeo.attributes.color.needsUpdate=true;
+}
+const disco1 = new THREE.PointLight(0xff4fa8, 0, 7); scene.add(disco1);
+const disco2 = new THREE.PointLight(0x4fd8ff, 0, 7); scene.add(disco2);
+const disco3 = new THREE.PointLight(0xffd23f, 0, 7); scene.add(disco3);
+
+/* ---------- Living room (Poly Haven CC0 assets assembled in Blender) ---------- */
+const cake = new THREE.Group(); cake.position.set(-1.35, 0.6, -0.25); scene.add(cake);
+function b64ToBuffer(b64){ const bin=atob(b64||""), buf=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i); return buf.buffer; }
+function loadScript(src, onload, onerror){ const s=document.createElement("script"); s.src=src; s.async=true; s.onload=onload; s.onerror=onerror; document.head.appendChild(s); }
+
+const portraitTex = canvasTex(512,400,(x,w,h)=>{
+  const g=x.createRadialGradient(w*.5,h*.4,20,w*.5,h*.5,w*.75); g.addColorStop(0,"#d9b48a"); g.addColorStop(.6,"#7d5a3c"); g.addColorStop(1,"#3b2618"); x.fillStyle=g; x.fillRect(0,0,w,h);
+  for(let i=0;i<1400;i++){ x.fillStyle=`rgba(${Math.random()<.5?255:0},${Math.random()<.5?230:20},${Math.random()<.5?200:10},.035)`; x.fillRect(Math.random()*w,Math.random()*h,2+Math.random()*6,1+Math.random()*3); }
+  const blob=(cx,cy,s)=>{ const gg=x.createRadialGradient(cx-10*s,cy-30*s,4,cx,cy,70*s); gg.addColorStop(0,"#3a3440"); gg.addColorStop(1,"#0d0a10"); x.fillStyle=gg;
+    x.beginPath(); x.ellipse(cx,cy,64*s,82*s,0,0,Math.PI*2); x.fill();
+    x.beginPath(); x.arc(cx-38*s,cy-78*s,20*s,0,Math.PI*2); x.arc(cx+38*s,cy-78*s,20*s,0,Math.PI*2); x.fill();
+    x.fillStyle="#e8b98a"; x.beginPath(); x.ellipse(cx,cy-58*s,13*s,9*s,0,0,Math.PI*2); x.fill();
+    x.fillStyle="#5a1c1a"; x.beginPath(); x.ellipse(cx,cy+58*s,62*s,34*s,0,0,Math.PI*2); x.fill();
+    x.fillStyle="#efe9df"; x.beginPath(); x.ellipse(cx-18*s,cy+56*s,9*s,6*s,0,0,Math.PI*2); x.ellipse(cx+18*s,cy+56*s,9*s,6*s,0,0,Math.PI*2); x.fill(); };
+  blob(160,230,1); blob(352,230,1); blob(256,272,.62);
+  x.fillStyle="rgba(40,24,12,.35)"; x.fillRect(0,0,w,14); x.fillRect(0,h-14,w,14);
+});
+portraitTex.flipY=false;
+
+let salonReady=false, lampShade=null;
+const WALL_TINT={WallPlaster:0xe8dcc8, Wainscot:0x5f7468, Ceiling:0xf3efe8, Rug:0x9a2a2a, TrimPaint:0xf1ece2};
+function onSalon(g){
+  const room=g.scene;
+  room.traverse(o=>{
+    if(!o.isMesh) return;
+    const m=o.material; if(!m) return;
+    o.receiveShadow=true;
+    o.castShadow = !/^(Floor|Ceiling|Wall|Wain|Rug|Rail|Base|Crown|PanelTrim)/.test(o.name);
+    if(WALL_TINT[m.name]!==undefined) m.color.setHex(WALL_TINT[m.name]);
+    if(m.name==="fancy_picture_frame_01_canvas"){ m.map=portraitTex; m.needsUpdate=true; }
+    if(/lamps_classic_chandelier/.test(m.name)){ m.emissive=new THREE.Color(0xffb060); m.emissiveIntensity=1.6; lampShade=m; o.castShadow=false; }
+    if(/chandelier/.test(m.name)) o.castShadow=false;   // the light sits inside it
+    if(/glass/.test(m.name)){ m.transparent=true; m.opacity=0.25; m.roughness=0.05; m.depthWrite=false; o.castShadow=false; }
+    m.envMapIntensity = /Floor|Parquet/.test(m.name) ? 0.35 : 0.5;
+  });
+  scene.add(room);
+  room.updateMatrixWorld(true);
+  const ck=room.getObjectByName("Cake");
+  if(ck){ cake.attach(ck); }
+  cake.traverse(o=>{ o.userData.cake=true; });
+  salonReady=true;
+}
+function loadSalon(){
+  if(!THREE.GLTFLoader) return;
+  toast("Le salon se prépare…", 20000);
+  loadScript("salon-model.js", ()=>{
+    try{ const buf=b64ToBuffer(window.SALON_GLB_B64); window.SALON_GLB_B64=null;
+      new THREE.GLTFLoader().parse(buf, "", g=>{ onSalon(g); toastEl.hidden=true; }, ()=>toast("Le salon n'a pas pu se charger.")); }catch(e){ toast("Le salon n'a pas pu se charger."); }
+  }, ()=>toast("Le salon n'a pas pu se charger."));
+  loadScript("salon-env.js", ()=>{
+    try{
+      if(!THREE.RGBELoader) return;
+      const loader=new THREE.RGBELoader(); loader.setDataType(THREE.UnsignedByteType);
+      const d=loader.parse(b64ToBuffer(window.SALON_HDR_B64)); window.SALON_HDR_B64=null;
+      if(!d) return;
+      const tex=new THREE.DataTexture(d.data,d.width,d.height,THREE.RGBAFormat,THREE.UnsignedByteType);
+      tex.encoding=THREE.RGBEEncoding; tex.minFilter=tex.magFilter=THREE.NearestFilter; tex.generateMipmaps=false; tex.flipY=true; tex.needsUpdate=true;
+      const pm=new THREE.PMREMGenerator(renderer); pm.compileEquirectangularShader();
+      scene.environment=pm.fromEquirectangular(tex).texture; tex.dispose(); pm.dispose();
+    }catch(e){}
+  });
+}
+
+/* ---------- Fairy lights + disco ball (party mode) ---------- */
+const bulbs=[]; const bulbCols=[0xff6fb5,0xffcf3a,0x6fd8ff,0x9dff8a,0xffa35c];
+const wireMat=new THREE.MeshBasicMaterial({color:0x222018});
+for(let i=0;i<40;i++){
+  const t=i/39, x=-3.05+t*6.1, seg=(t*3)%1, y=2.8-Math.sin(seg*Math.PI)*0.28;
+  const b=mesh(new THREE.SphereGeometry(0.022,10,8), new THREE.MeshBasicMaterial({color:bulbCols[i%5]}), x, y, -1.93);
+  b.userData.base=new THREE.Color(bulbCols[i%5]); b.userData.phase=Math.random()*6; bulbs.push(b);
+}
+const discoBall = new THREE.Group(); discoBall.position.set(0,3.6,0.9); scene.add(discoBall);
+mesh(new THREE.CylinderGeometry(0.004,0.004,1.2,6), M(0x999999,0.4), 0, 0.6, 0, discoBall);
+const ballMesh = mesh(new THREE.IcosahedronGeometry(0.17,2), M(0xdddddd,0.12,{metalness:1, flatShading:true}), 0, 0, 0, discoBall);
+discoBall.visible=false;
+
+/* ================= JIMBO (procedural stand-in until the GLB arrives) ================= */
+const black = M(0x0e0b12, 0.85), white = M(0xf6f3ee, 0.55), shortsMat = M(0x5c1d1a, 0.8), yellow = M(0xf2c21b, 0.45), btnMat = M(0xfafafa, 0.35);
+const furTex = (()=>{
+  const n=128, c=document.createElement("canvas"); c.width=c.height=n; const x=c.getContext("2d"), d=x.createImageData(n,n);
+  for(let i=0;i<n*n;i++){ d.data[i*4]=d.data[i*4+1]=d.data[i*4+2]=255; d.data[i*4+3]=Math.floor(Math.pow(Math.random(),0.8)*255); }
+  x.putImageData(d,0,0);
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.magFilter=t.minFilter=THREE.NearestFilter; t.generateMipmaps=false; return t;
+})();
+function furry(baseGeo, {len=0.07, shells=18, repeat=[14,10], root=0x0c0a10, tip=0x3a3044, gravity=0.5}={}){
+  const group=new THREE.Group(); group.add(new THREE.Mesh(baseGeo, M(root,0.95)));
+  const tex=furTex.clone(); tex.needsUpdate=true; tex.repeat.set(repeat[0],repeat[1]);
+  const pos=baseGeo.attributes.position, nor=baseGeo.attributes.normal, cR=new THREE.Color(root), cT=new THREE.Color(tip);
+  for(let s=1;s<=shells;s++){
+    const k=s/shells, g=new THREE.BufferGeometry(), arr=new Float32Array(pos.count*3);
+    for(let i=0;i<pos.count;i++){ arr[i*3]=pos.getX(i)+nor.getX(i)*len*k; arr[i*3+1]=pos.getY(i)+nor.getY(i)*len*k-gravity*len*k*k; arr[i*3+2]=pos.getZ(i)+nor.getZ(i)*len*k; }
+    g.setAttribute("position",new THREE.BufferAttribute(arr,3)); g.setAttribute("normal",nor); g.setAttribute("uv",baseGeo.attributes.uv); g.setIndex(baseGeo.index);
+    const sh=new THREE.Mesh(g, M(cR.clone().lerp(cT,Math.pow(k,1.4)).getHex(),1,{map:tex, alphaTest:0.12+0.83*k})); sh.raycast=()=>{}; group.add(sh);
+  }
+  return group;
+}
+function bodyGeo(){
+  const g=new THREE.SphereGeometry(1,80,60), p=g.attributes.position, v=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){
+    v.fromBufferAttribute(p,i); const y=v.y;
+    const w=0.92+0.24*Math.exp(-((y+0.25)**2)/0.18)-0.28*Math.max(0,y-0.45);
+    let x=v.x*w*0.9, yy=y*0.84, z=v.z*w*0.7;
+    if(v.z>0){ const lobe=Math.exp(-((y+0.38)**2)/0.05)*0.13*v.z*(1-0.5*Math.cos(v.x*9)); z+=lobe; yy-=lobe*0.5; }
+    if(yy<-0.62) yy=-0.62+(yy+0.62)*0.45;
+    p.setXYZ(i,x,yy,z);
+  }
+  g.computeVertexNormals(); return g;
+}
+const jimbo = new THREE.Group(); jimbo.position.z=-0.12; scene.add(jimbo);
+const shadowTex = canvasTex(128,128,(x,w,h)=>{ const g=x.createRadialGradient(64,64,0,64,64,64); g.addColorStop(0,"rgba(10,4,12,.75)"); g.addColorStop(.6,"rgba(10,4,12,.3)"); g.addColorStop(1,"rgba(10,4,12,0)"); x.fillStyle=g; x.fillRect(0,0,w,h); });
+const shadow = mesh(new THREE.CircleGeometry(1,48), new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false,opacity:0.7}), 0, 0.016, -0.12); shadow.rotation.x=-Math.PI/2;
+const bodyPivot=new THREE.Group(); bodyPivot.position.y=0.8; jimbo.add(bodyPivot);
+const body=furry(bodyGeo(),{len:0.075,shells:20,repeat:[18,12]}); body.position.y=0.66; bodyPivot.add(body);
+[-1,1].forEach(sx=>{ const g=new THREE.SphereGeometry(0.2,32,24); g.scale(1,1,0.62); const ear=furry(g,{len:0.04,shells:12,repeat:[6,4],gravity:0.2}); ear.position.set(sx*0.32,0.86,-0.06); ear.rotation.z=-sx*0.15; ear.userData.zone="head"; body.add(ear); });
+function faceCanvas(state){
+  const c=document.createElement("canvas"); c.width=256; c.height=208; const x=c.getContext("2d");
+  x.lineWidth=7; x.strokeStyle="#b97a45"; x.fillStyle="#f1c38e";
+  x.beginPath(); x.ellipse(94,82,46,58,-0.15,0,Math.PI*2); x.ellipse(162,82,46,58,0.15,0,Math.PI*2); x.fill(); x.stroke();
+  x.beginPath(); x.ellipse(128,138,100,58,0,0,Math.PI*2); x.fill(); x.stroke();
+  x.beginPath(); x.ellipse(94,82,42,54,-0.15,0,Math.PI*2); x.ellipse(162,82,42,54,0.15,0,Math.PI*2); x.ellipse(128,138,96,54,0,0,Math.PI*2); x.fill();
+  x.fillStyle="#140c10";
+  if(state==="blink"||state==="happy"){ x.lineWidth=6; x.strokeStyle="#140c10"; [104,152].forEach(ex=>{ x.beginPath(); if(state==="happy"){ x.moveTo(ex-11,88); x.quadraticCurveTo(ex,70,ex+11,88);} else { x.moveTo(ex-11,84); x.quadraticCurveTo(ex,90,ex+11,84);} x.stroke(); }); }
+  else { [104,152].forEach(ex=>{ x.beginPath(); x.ellipse(ex,80,10,20,0,0,Math.PI*2); x.fill(); }); x.fillStyle="#fff"; [107,155].forEach(ex=>{ x.beginPath(); x.arc(ex,72,3.5,0,Math.PI*2); x.fill(); }); x.fillStyle="#140c10"; }
+  x.beginPath(); x.ellipse(128,118,19,12,0,0,Math.PI*2); x.fill();
+  if(state==="talk"||state==="happy"){ x.fillStyle="#3a0d12"; x.beginPath(); x.ellipse(128,154,40,26,0,0,Math.PI*2); x.fill(); x.fillStyle="#e2555f"; x.beginPath(); x.ellipse(128,166,24,12,0,0,Math.PI*2); x.fill(); }
+  else { x.strokeStyle="#140c10"; x.lineWidth=6; x.lineCap="round"; x.beginPath(); x.moveTo(78,136); x.quadraticCurveTo(128,186,178,136); x.stroke(); x.fillStyle="#e89b5a"; x.beginPath(); x.moveTo(92,148); x.quadraticCurveTo(128,180,164,148); x.quadraticCurveTo(128,166,92,148); x.fill(); }
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.anisotropy=4; return t;
+}
+const faceTex={normal:faceCanvas("normal"),blink:faceCanvas("blink"),talk:faceCanvas("talk"),happy:faceCanvas("happy")};
+const faceMat=new THREE.MeshStandardMaterial({map:faceTex.normal,transparent:true,roughness:0.5,alphaTest:0.05});
+const face=new THREE.Mesh(new THREE.PlaneGeometry(0.27,0.22),faceMat); face.position.set(0,0.645,0.455); face.rotation.x=-0.5; face.userData.zone="head"; body.add(face);
+const shortsGeo=new THREE.LatheGeometry([[0.05,0.4],[0.48,0.42],[0.66,0.52],[0.75,0.7],[0.73,0.88],[0.64,1.0],[0.3,1.04]].map(p=>new THREE.Vector2(p[0],p[1])),64); shortsGeo.scale(1,1,0.8);
+const shorts=new THREE.Mesh(shortsGeo,shortsMat); shorts.userData.zone="legs"; jimbo.add(shorts);
+[-1,1].forEach(sx=>{ const b=new THREE.Mesh(new THREE.SphereGeometry(0.13,32,20),btnMat); b.scale.set(1,0.72,0.35); b.position.set(sx*0.25,0.68,0.565); b.rotation.y=sx*0.42; b.userData.zone="legs"; jimbo.add(b); });
+const legs=[];
+[-1,1].forEach(sx=>{ const leg=new THREE.Group(); leg.position.set(sx*0.21,0.48,0); jimbo.add(leg);
+  const shin=new THREE.Mesh(new THREE.CylinderGeometry(0.048,0.048,0.36,16),black); shin.position.y=-0.18; leg.add(shin);
+  const shoe=new THREE.Mesh(new THREE.SphereGeometry(1,32,24),yellow); shoe.scale.set(0.17,0.12,0.27); shoe.position.set(sx*0.02,-0.39,0.08); leg.add(shoe);
+  leg.traverse(o=>o.userData.zone="legs"); legs.push(leg); });
+function glove(){ const g=new THREE.Group();
+  const palm=new THREE.Mesh(new THREE.SphereGeometry(0.085,24,18),white); palm.scale.set(1,1.15,0.7); g.add(palm);
+  for(let f=0;f<4;f++){ const fi=new THREE.Mesh(new THREE.SphereGeometry(0.03,12,10),white); fi.scale.set(1,1.7,1); fi.position.set(-0.05+f*0.033,-0.1,0); g.add(fi); }
+  const th=new THREE.Mesh(new THREE.SphereGeometry(0.032,12,10),white); th.scale.set(1,1.5,1); th.position.set(0.075,-0.02,0.03); th.rotation.z=0.8; g.add(th);
+  const cuff=new THREE.Mesh(new THREE.TorusGeometry(0.06,0.026,10,24),white); cuff.rotation.x=Math.PI/2; cuff.position.y=0.095; g.add(cuff); return g; }
+const arms=[];
+[-1,1].forEach(sx=>{ const pivot=new THREE.Group(); pivot.position.set(sx*0.86,1.5,0.02); jimbo.add(pivot);
+  const arm=new THREE.Mesh(new THREE.CylinderGeometry(0.034,0.034,0.82,12),black); arm.position.y=-0.41; pivot.add(arm);
+  const gl=glove(); gl.position.y=-0.9; gl.rotation.y=sx*0.6; pivot.add(gl);
+  pivot.traverse(o=>o.userData.zone="arms"); arms.push(pivot); });
+body.children[0].userData.zone="belly";
+const procGroup=new THREE.Group(); [...jimbo.children].forEach(o=>procGroup.add(o)); procGroup.scale.setScalar(1.9/2.3); jimbo.add(procGroup);
+const procParts=[procGroup];
+
+/* ================= JIMBO (rigged GLB made from the user's model) ================= */
+let rig=null;
+const _q=new THREE.Quaternion(), _e=new THREE.Euler();
+function loadModel(){
+  if(!THREE.GLTFLoader) return;
+  procParts.forEach(o=>o.visible=false);
+  const fail=()=>{ procParts.forEach(o=>o.visible=true); toast("Le modèle 3D n'a pas pu se charger : Jimbo garde sa version simplifiée."); };
+  const sc=document.createElement("script"); sc.src="jimbo-model.js"; sc.async=true; sc.onerror=fail;
+  sc.onload=()=>{
+    try{
+      const bin=atob(window.JIMBO_GLB_B64||""), buf=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+      window.JIMBO_GLB_B64=null;
+      new THREE.GLTFLoader().parse(buf.buffer, "", onModel, fail);
+    }catch(e){ fail(); }
+  };
+  document.head.appendChild(sc);
+  function onModel(g){
+    const model=g.scene;
+    model.updateMatrixWorld(true);
+    const box=new THREE.Box3().setFromObject(model), s=1.9/(box.max.y-box.min.y);
+    model.position.y=-box.min.y;
+    const wrap=new THREE.Group(); wrap.scale.setScalar(s); wrap.add(model); jimbo.add(wrap);
+    model.traverse(o=>{ if(o.isMesh){ o.frustumCulled=false; o.castShadow=true; o.receiveShadow=true; if(o.material){ o.material.side=THREE.DoubleSide; o.material.envMapIntensity=0.55; } } });
+    jimbo.updateMatrixWorld(true);
+    const mqi=new THREE.Quaternion(); model.getWorldQuaternion(mqi); mqi.invert();
+    const bones={};
+    model.traverse(o=>{ if(!o.isBone) return;
+      const pq=new THREE.Quaternion(); if(o.parent) o.parent.getWorldQuaternion(pq); pq.premultiply(mqi);
+      bones[o.name]={b:o, rest:o.quaternion.clone(), restS:o.scale.clone(), pq, pqi:pq.clone().invert()}; });
+    rig={wrap, model, bones, s};
+    if(bones.Foot_L){ const p=new THREE.Vector3(); bones.Foot_L.b.getWorldPosition(p); jimbo.worldToLocal(p); if(p.y>0.05&&p.y<0.4) ANKLE_H=p.y; }
+  }
+}
+// Rotate a bone by euler angles expressed in the model's frame (Y up, facing +Z), on top of its rest pose
+function rot(name,x,y,z){ const i=rig.bones[name]; if(!i) return; _e.set(x,y,z); _q.setFromEuler(_e); i.b.quaternion.copy(i.pqi).multiply(_q).multiply(i.pq).multiply(i.rest); }
+function boneZone(hit){
+  const o=hit.object, g=o.geometry; if(!o.isSkinnedMesh||!g.attributes.skinIndex||!hit.face) return "belly";
+  const si=g.attributes.skinIndex, sw=g.attributes.skinWeight, a=hit.face.a; let best=0, bi=0;
+  for(let k=0;k<4;k++){ const w=sw.getComponent(a,k); if(w>best){ best=w; bi=si.getComponent(a,k); } }
+  const n=(o.skeleton.bones[bi]||{}).name||"";
+  if(/Head/.test(n)) return "head";
+  if(/Arm|Hand/.test(n)) return "arms";
+  if(/Leg|Foot|Hips/.test(n)) return "legs";
+  return "belly";
+}
+loadModel();
+
+/* ================= PHYSICAL REACTIONS: punches (damped springs) and the leg sweep (keyed fall) ================= */
+const H={}; ["tilt","twist","side","headX","headZ","squash","arm","push","legL","legR"].forEach(k=>H[k]={v:0,vel:0});
+function springStep(dt){
+  for(let n=0;n<3;n++){ const h=dt/3;
+    for(const k in H){ const s=H[k], K=k==="squash"?300:k.startsWith("head")?190:150, C=k==="squash"?10:12; s.vel+=(-K*s.v-C*s.vel)*h; s.v+=s.vel*h; } }
+}
+const clamp01=x=>Math.min(1,Math.max(0,x));
+const seg=(t,a,b)=>clamp01((t-a)/(b-a));
+const E={ inQ:x=>x*x, inC:x=>x*x*x, outQ:x=>1-(1-x)*(1-x), outC:x=>1-Math.pow(1-x,3), io:x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2,
+  outBack:x=>{ const c1=1.5, c3=c1+1; return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2); } };
+const FALL_T=3.35, SIT=0.36;  // seconds; how far the hips drop when he lands on his bottom
+let fall=null;                 // {t0, s} while the sweep animation runs; s = sweep direction on screen (+1 = to the right)
+/* The pose of the sweep, as a function of time:
+   0–0.16 s feet whipped out sideways · 0.16–0.58 s free fall onto his bottom (gravity: ease-in) ·
+   0.58 s impact (belly squash + jiggle, head snaps, dust) · rocks on his round back with legs in the air ·
+   1.75–2.7 s rocks forward, pushes on the floor · 2.7–3.35 s stands up with a small overshoot and shakes it off. */
+function fallPose(t, s){
+  const F={drop:0,lift:0,tilt:0,roll:0,slideX:0,legX:0,legZ:0,kick:0,armL:0.15,armR:-0.15,armLx:0,armRx:0,foreL:-0.15,foreR:-0.15,headX:0,headZ:0,sq:1};
+  const a=seg(t,0,0.16), b=seg(t,0.16,0.58), d=seg(t,1.75,2.7), e=seg(t,2.7,FALL_T);
+  // sweep + fall
+  F.legZ = s*0.95*E.outQ(a)*(1-E.io(b));
+  F.legX = -1.5*E.io(b);
+  F.lift = 0.08*Math.sin(Math.PI*a);
+  F.drop = SIT*E.inQ(b);
+  F.tilt = -0.18*E.outQ(a) - 0.44*E.inQ(b);
+  F.roll = -s*0.22*E.inQ(b);
+  F.slideX = s*0.1*E.outQ(b);
+  const up=E.outQ(seg(t,0.04,0.42));
+  F.armL=0.15+1.65*up; F.armR=-0.15-1.65*up; F.armLx=-0.35*up; F.armRx=-0.35*up;
+  F.headX = 0.35*E.outQ(a)*(1-b);
+  if(t>=0.58){
+    const tt=t-0.58, rock=Math.sin(tt*7.2)*Math.exp(-tt*2.6);
+    F.tilt = -0.62 - 0.22*rock;
+    F.legX = -1.5 + 0.25*rock;
+    F.kick = 0.32*Math.sin(tt*15)*Math.exp(-tt*1.4);          // little bicycle kick of outrage
+    F.sq   = 1 - 0.2*Math.exp(-tt*7)*Math.sin(tt*26);         // belly squash + jiggle on impact
+    F.headX = -0.5*Math.exp(-tt*5.5)*Math.sin(tt*11);          // head snaps back, then settles
+    const flop=E.outC(seg(tt,0,0.35));
+    F.armL = 1.8-1.2*flop + 0.15*rock; F.armR = -(1.8-1.2*flop) - 0.15*rock; F.armLx=-0.35+0.75*flop; F.armRx=-0.35+0.75*flop;
+  }
+  if(t>=1.75){
+    const k=E.io(d);
+    F.tilt = lerp(-0.62, 0.38, k);
+    F.drop = lerp(SIT, 0.13, k);
+    F.legX = lerp(-1.5, -0.55, k); F.kick*= (1-k);
+    F.roll = lerp(-s*0.22, 0, k);
+    const push=Math.sin(Math.PI*k);
+    F.armL=lerp(0.6,0.35,k); F.armR=-F.armL; F.armLx=0.4+0.45*push; F.armRx=0.4+0.45*push; F.foreL=F.foreR=-0.15-0.5*push;
+    F.headX = 0.25*k;
+  }
+  if(t>=2.7){
+    const k2=E.io(e), k=E.outBack(k2);
+    F.tilt = 0.38*(1-k);
+    F.drop = 0.13*(1-k2);
+    F.legX = -0.55*(1-k2);
+    F.slideX = s*0.1*(1-k2);
+    F.armL=lerp(0.35,0.15,k2); F.armR=-F.armL; F.armLx=lerp(0.4,0,k2); F.armRx=F.armLx; F.foreL=F.foreR=-0.15;
+    F.headX = 0.25*(1-k2);
+    F.headZ = 0.28*Math.sin(e*Math.PI*5)*(1-e);                // shakes it off
+  }
+  return F;
+}
+
+/* Impact flash + fur puffs + dust */
+const fxTex=(()=>{ const c=document.createElement("canvas"); c.width=c.height=128; const x=c.getContext("2d");
+  const g=x.createRadialGradient(64,64,0,64,64,64); g.addColorStop(0,"rgba(255,255,255,1)"); g.addColorStop(.2,"rgba(255,246,220,.75)"); g.addColorStop(.5,"rgba(255,220,170,.18)"); g.addColorStop(1,"rgba(255,210,160,0)");
+  x.fillStyle=g; x.fillRect(0,0,128,128); return new THREE.CanvasTexture(c); })();
+const fx=[];
+function spawnImpact(p, big){
+  const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:fxTex, transparent:true, opacity:0.9, blending:THREE.AdditiveBlending, depthWrite:false, depthTest:false}));
+  fl.position.copy(p); scene.add(fl); fx.push({o:fl, t:0, life:0.22, kind:"flash", big});
+  const n=big?16:9;
+  for(let i=0;i<n;i++){
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:dustTex, color:big?0x9a8a7a:0x2a2430, transparent:true, opacity:big?0.55:0.85, depthWrite:false}));
+    sp.position.copy(p); const sc=big?0.08+Math.random()*0.12:0.025+Math.random()*0.03; sp.scale.setScalar(sc); scene.add(sp);
+    const dir=new THREE.Vector3(Math.random()*2-1, big?Math.random()*0.5:Math.random()*1.2-0.2, Math.random()*2-1).normalize().multiplyScalar(big?0.9+Math.random()*0.6:0.6+Math.random()*0.9);
+    if(big) dir.y=Math.abs(dir.y)*0.4;
+    fx.push({o:sp, t:0, life:big?1.1+Math.random()*0.5:0.5+Math.random()*0.3, kind:big?"dust":"fur", vel:dir, sc});
+  }
+}
+function updateFx(dt){
+  for(let i=fx.length-1;i>=0;i--){ const f=fx[i]; f.t+=dt; const u=f.t/f.life;
+    if(f.kind==="flash"){ f.o.scale.setScalar((f.big?0.6:0.25)+u*(f.big?0.9:0.45)); f.o.material.opacity=0.9*(1-u); }
+    else { f.o.position.addScaledVector(f.vel, dt); if(f.kind==="fur"){ f.vel.y-=2.6*dt; } f.vel.multiplyScalar(f.kind==="dust"?0.94:0.985);
+      if(f.kind==="dust") f.o.scale.setScalar(f.sc*(1+u*1.8)); f.o.material.opacity=(f.kind==="dust"?0.55:0.85)*(1-u); }
+    if(u>=1){ scene.remove(f.o); f.o.material.dispose(); fx.splice(i,1); } }
+}
+let shakeAmp=0;
+
+/* Soft body thuds (Web Audio): a muffled punch on fur, and a heavy floor thump for the fall */
+let sfxCtx=null;
+function thud(heavy){
+  if(typeof soundOn!=="undefined" && !soundOn) return;
+  try{
+    if(!sfxCtx){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; sfxCtx=new AC(); }
+    sfxCtx.resume(); const c=sfxCtx, t=c.currentTime;
+    const o=c.createOscillator(), g=c.createGain(); o.type="sine"; o.frequency.setValueAtTime(heavy?95:150,t); o.frequency.exponentialRampToValueAtTime(heavy?38:60,t+(heavy?0.25:0.12));
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(heavy?0.9:0.55,t+0.005); g.gain.exponentialRampToValueAtTime(0.0001,t+(heavy?0.45:0.18));
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t+0.5);
+    const len=Math.floor(c.sampleRate*0.15), b=c.createBuffer(1,len,c.sampleRate), dd=b.getChannelData(0); for(let i=0;i<len;i++) dd[i]=(Math.random()*2-1)*Math.pow(1-i/len,3);
+    const n=c.createBufferSource(); n.buffer=b; const f=c.createBiquadFilter(); f.type="lowpass"; f.frequency.value=heavy?500:900; const ng=c.createGain(); ng.gain.value=heavy?0.5:0.35;
+    n.connect(f).connect(ng).connect(c.destination); n.start(t);
+  }catch(e){}
+}
+
+/* ================= ANIMATION ================= */
+let mode="idle", modeUntil=0, modeStart=0, talking=false, listening=false, party=false, blinkAt=2, blinkUntil=0, mouthT=0;
+const clock=new THREE.Clock(), lerp=(a,b,t)=>a+(b-a)*t;
+const BPM=122; let danceStart=0;
+const JZ=-0.12, _eJ=new THREE.Euler(), _qJ=new THREE.Quaternion(), _pl=new THREE.Vector3(), _fa=new THREE.Vector3(), _la=new THREE.Vector3();
+let ANKLE_H=0.19;   // ankle height above the sole when standing; measured from the model once it loads
+const REST={bob:0,sway:0,turn:0,sq:1,armL:0.15,armR:-0.15,armLx:0,armRx:0,lean:0,headX:0,headY:0,headZ:0,chestZ:0,hipZ:0,shift:0,foreL:-0.15,foreR:-0.15};
+const cur=Object.assign({},REST);
+const flyers=[];
+
+function restMode(){ return talking?"talk":(listening && (heard||partial))?"listen":"idle"; }
+function setMode(m, ms){
+  const prev=mode; mode=m; modeStart=performance.now(); modeUntil=ms?modeStart+ms:0;
+  if(m==="dance" && prev!=="dance") danceStart=performance.now();
+  const db=document.getElementById("danceBtn"); if(db) db.setAttribute("aria-pressed", String(m==="dance"));
+}
+function resize(){
+  const w=app.clientWidth, h=app.clientHeight; renderer.setSize(w,h,false);
+  camera.aspect=w/h; camera.updateProjectionMatrix();
+  const d = w/h < 0.75 ? 6.0 : w/h < 1.1 ? 5.2 : 4.6;
+  camera.position.sub(controls.target).setLength(d).add(controls.target);
+}
+new ResizeObserver(resize).observe(app); resize();
+
+function frame(){
+  const dt=Math.min(clock.getDelta(),0.05), t=clock.elapsedTime, now=performance.now();
+  if(modeUntil && now>modeUntil) setMode(restMode());
+  if(!modeUntil && (mode==="idle"||mode==="listen"||mode==="talk") && mode!==restMode()) setMode(restMode());
+  const m = reduceMotion && mode==="dance" ? "talk" : mode;
+  const p = Math.min(1,(now-modeStart)/600);
+  let tg=Object.assign({},REST), legSwing=0, faceMood=null, kneeDip=0;
+  if(m==="idle"){ tg.bob=0.015*Math.sin(t*2); tg.sway=0.035*Math.sin(t*1.1); tg.sq=1+0.018*Math.sin(t*2.2); tg.armL=0.15+0.05*Math.sin(t*1.3); tg.armR=-0.15-0.05*Math.sin(t*1.3+1); }
+  else if(m==="listen"){ tg.lean=0.07+0.03*Math.sin(t*3.2); tg.sway=0.06; tg.sq=1+0.012*Math.sin(t*2); tg.armL=0.2; tg.armR=-0.2; }
+  else if(m==="think"){ tg.sway=0.09; tg.sq=1+0.01*Math.sin(t*3); tg.armR=-2.2; tg.armRx=-0.6; tg.armL=0.2; tg.lean=0.05; }
+  else if(m==="talk"){ tg.bob=Math.abs(Math.sin(t*6))*0.035; tg.sq=1+0.035*Math.sin(t*12); tg.sway=0.05*Math.sin(t*2.3); tg.armL=0.5+0.4*Math.sin(t*3.1); tg.armR=-0.5-0.4*Math.sin(t*2.7+1); tg.armLx=-0.4+0.3*Math.sin(t*2.2); tg.armRx=-0.4+0.3*Math.sin(t*2.9); }
+  else if(m==="dance"){
+    /* Bourgeois house groove: knees dip on every beat, hips sway over two beats, chin up,
+       elbows tucked with small forearm pumps; every 8 beats he switches to "one hand on the hip,
+       the other raised at chest height, wrist turning", then back. Synced to the music's clock. */
+    const ab=music.beat(), beat = ab!=null ? ab : (now-danceStart)/1000*BPM/60;
+    const ph=beat*Math.PI*2, hip=Math.sin(ph/2), dip=0.5+0.5*Math.cos(ph);
+    const bar8=Math.floor(beat/8)%4, flair = bar8===1||bar8===3;
+    kneeDip=dip;
+    tg.bob=-0.035*dip; tg.sq=1-0.018*dip;
+    tg.shift=0.045*hip; tg.hipZ=0.09*hip; tg.chestZ=-0.06*hip; tg.sway=0.02*hip;
+    tg.turn=0.18*Math.sin(beat*Math.PI/8);
+    tg.headX=-0.1+0.07*dip; tg.headY=0.12*hip; tg.headZ=-0.04*hip;
+    legSwing=0.07*Math.sin(ph/2);
+    if(!flair){
+      // both elbows bent, forearms pumping gently in opposition
+      tg.armL=0.28+0.05*hip; tg.armR=-0.28+0.05*hip;
+      tg.armLx=-0.35; tg.armRx=-0.35;
+      tg.foreR=-1.05+0.22*Math.sin(ph); tg.foreL=-1.05+0.22*Math.sin(ph+Math.PI);
+    } else if(bar8===1){
+      // right hand raised at chest height, wrist rolling; left hand on the hip
+      tg.armL=0.85+0.08*Math.sin(ph); tg.armLx=-0.95; tg.foreR=-1.35+0.12*Math.sin(ph*2);
+      tg.armR=-0.55; tg.armRx=0.25; tg.foreL=-1.25;
+    } else {
+      // mirrored
+      tg.armR=-0.85-0.08*Math.sin(ph); tg.armRx=-0.95; tg.foreL=-1.35+0.12*Math.sin(ph*2);
+      tg.armL=0.55; tg.armLx=0.25; tg.foreR=-1.25;
+    }
+    faceMood="happy";
+  }
+  else if(m==="laugh"){ tg.bob=Math.abs(Math.sin(t*14))*0.03; tg.sq=1+0.06*Math.sin(t*20); tg.lean=-0.12; tg.armL=0.6; tg.armR=-0.6; tg.armLx=-0.9; tg.armRx=-0.9; faceMood="happy"; }
+  else if(m==="sad"){ tg.sq=0.96+0.01*Math.sin(t*1.5); tg.lean=0.15; tg.armL=0.05; tg.armR=-0.05; tg.bob=-0.03; }
+  else if(m==="ouch"){ tg.sq=p<0.3?0.84:1+0.05*Math.sin(t*25)*(1-p); tg.armL=1.0; tg.armR=-1.0; tg.armLx=-1.1; tg.armRx=-1.1; tg.lean=-0.08; faceMood="blink"; }
+  else if(m==="hop"){ tg.bob=0.4*Math.sin(Math.PI*p); tg.sq=p<0.15?0.9:1.05; tg.armL=1.2*Math.sin(Math.PI*p); tg.armR=-1.2*Math.sin(Math.PI*p); legSwing=0.3*Math.sin(Math.PI*p); }
+  else if(m==="eat"){ tg.sq=1+0.05*Math.sin(t*16); tg.armL=1.5; tg.armLx=-1.25; tg.armR=-0.4; tg.bob=0.02*Math.abs(Math.sin(t*8)); faceMood=(Math.floor(t*8)%2)?"talk":"happy"; }
+  else if(m==="wave"){ tg.armR=-2.7+0.35*Math.sin(t*11); tg.armRx=-0.15; tg.armL=0.2; tg.sway=-0.05; tg.bob=0.02*Math.sin(t*5); faceMood="happy"; }
+  // head / chest accents (used by the rigged model)
+  if(m==="idle"){ tg.headZ=0.05*Math.sin(t*0.9); tg.headX=0.03*Math.sin(t*1.7); }
+  else if(m==="listen"){ tg.headX=0.12+0.08*Math.sin(t*3.2); tg.headZ=0.1; }
+  else if(m==="think"){ tg.headZ=0.22; tg.headX=-0.1; }
+  else if(m==="talk"){ tg.headX=0.07*Math.sin(t*7); tg.headZ=0.06*Math.sin(t*2.1); tg.chestZ=0.04*Math.sin(t*2.3); }
+  else if(m==="laugh"){ tg.headX=-0.3; tg.chestZ=0.05*Math.sin(t*20); }
+  else if(m==="sad"){ tg.headX=0.35; }
+  else if(m==="ouch"){ tg.headX=0.2; tg.headZ=0.15; }
+  else if(m==="eat"){ tg.headX=0.1*Math.sin(t*16); }
+  else if(m==="wave"){ tg.headZ=-0.15; }
+  const k=1-Math.exp(-dt*(m==="hop"||m==="ouch"?16:8));
+  for(const q in cur) cur[q]=lerp(cur[q],tg[q],k);
+
+  // final pose = mood pose + punch springs (+ the sweep's keyed fall, blended in and out)
+  springStep(dt);
+  const P=Object.assign({},cur);
+  P.lean+=H.tilt.v; P.turn+=H.twist.v; P.sway+=H.side.v; P.headX+=H.headX.v; P.headZ+=H.headZ.v; P.sq+=H.squash.v;
+  P.armL+=H.arm.v*0.5; P.armR-=H.arm.v*0.5; P.armLx-=H.arm.v*0.35; P.armRx-=H.arm.v*0.35;
+  let legR=legSwing+H.legR.v, legL=-legSwing+H.legL.v, legZ=0, drop=0, lift=0, slideX=0, slideZ=H.push.v, fTilt=0, fRoll=0, kick=0;
+  if(fall){
+    const ft=(now-fall.t0)/1000;
+    if(ft>=FALL_T){ fall=null; setMode(restMode()); }
+    else {
+      const F=fallPose(ft, fall.s), w=Math.min(seg(ft,0,0.08), 1-seg(ft,FALL_T-0.3,FALL_T));
+      drop=F.drop; lift=F.lift; fTilt=F.tilt; fRoll=F.roll; slideX=F.slideX; legZ=F.legZ*w; kick=F.kick;
+      legR=lerp(legR,F.legX,w); legL=lerp(legL,F.legX,w);
+      ["armL","armR","armLx","armRx","foreL","foreR","headX","headZ"].forEach(q=>{ P[q]=lerp(P[q],F[q],w); });
+      P.sq=lerp(P.sq,F.sq,w); P.headX+=H.headX.v;
+      if(ft>=0.58 && !fall.landed){ fall.landed=true; thud(true); shakeAmp=0.05; const lp=jimbo.localToWorld(new THREE.Vector3(0,0.05,0)); lp.y=0.05; spawnImpact(lp,true); }
+      if(ft>=2.75 && !fall.spoke){ fall.spoke=true; if(Math.random()<0.5) react(mode==="fall"?"fall":mode,0,LINES.fallen); }
+    }
+  }
+  // rotate the whole body around his bottom so falls, leans and recoils pivot where a real body would
+  _eJ.set(P.lean+fTilt, P.turn, P.sway+fRoll); _qJ.setFromEuler(_eJ);
+  jimbo.quaternion.copy(_qJ);
+  _pl.set(0, SIT, -0.05).applyQuaternion(_qJ);
+  jimbo.position.set(P.shift+slideX, SIT-drop+lift+P.bob, JZ+slideZ).sub(_pl);
+  if(rig){
+    const s=rig.s, A=0.72; // the skin holds up to ~115° of arm raise
+    rig.wrap.scale.set(s*(1+(1-P.sq)*0.5), s*P.sq, s*(1+(1-P.sq)*0.5));
+    rot("Arm_R", P.armLx, 0, -P.armL*A);
+    rot("Arm_L", P.armRx, 0, -P.armR*A);
+    rot("Forearm_R", P.foreR-Math.max(0,P.armL-0.3)*0.25, 0, 0);
+    rot("Forearm_L", P.foreL-Math.max(0,-P.armR-0.3)*0.25, 0, 0);
+    rot("Hips", 0, 0, P.hipZ);
+    rot("Leg_R", legR+kick, 0, -P.hipZ+legZ); rot("Leg_L", legL-kick, 0, -P.hipZ+legZ);
+    rot("Foot_R", -legSwing*0.5, 0, 0); rot("Foot_L", legSwing*0.5, 0, 0);
+    rot("Chest", 0, P.turn*0.3, P.chestZ);
+    rot("Head", P.headX, P.headY, P.headZ);
+    const hb=rig.bones.Head; if(hb){ const ts = talking&&(m==="talk"||m==="laugh") ? 1+0.035*Math.sin(t*17) : 1; hb.b.scale.set(hb.restS.x*(2-ts), hb.restS.y*ts, hb.restS.z*(2-ts)); }
+    // floor contact: find the lowest point of each shoe (ankle minus sole depth, less when the leg is
+    // tilted and the shoe rests on its heel) and lift the whole body if a shoe would sink into the floor
+    jimbo.updateMatrixWorld(true);
+    let low=1e9;
+    for(const sd of ["L","R"]){
+      const fb=rig.bones["Foot_"+sd], lb=rig.bones["Leg_"+sd]; if(!fb||!lb) continue;
+      fb.b.getWorldPosition(_fa); lb.b.getWorldPosition(_la);
+      const down=Math.max(0.45, (_la.y-_fa.y)/Math.max(1e-6,_la.distanceTo(_fa)));
+      low=Math.min(low, _fa.y-ANKLE_H*down);
+    }
+    if(low<0){ jimbo.position.y-=low; }
+  } else {
+    bodyPivot.scale.set(1+(1-P.sq)*0.6,P.sq,1+(1-P.sq)*0.6);
+    arms[0].rotation.z=-P.armL; arms[1].rotation.z=-P.armR; arms[0].rotation.x=P.armLx; arms[1].rotation.x=P.armRx;
+    legs[0].rotation.x=legR; legs[1].rotation.x=legL;
+  }
+  const lying=drop/SIT;
+  shadow.scale.set((0.8-P.bob*1.2)*(1+lying*0.5),(0.6-P.bob*0.9)*(1+lying*0.9),1);
+  shadow.position.set(P.shift+slideX, 0.016, JZ+slideZ-lying*0.35);
+  updateFx(dt);
+
+  // face
+  if(t>blinkAt){ blinkUntil=t+0.13; blinkAt=t+2.5+Math.random()*3; }
+  let f=faceMood||"normal";
+  if(!faceMood && talking && (m==="talk"||m==="laugh")){ mouthT+=dt; f=(Math.floor(mouthT*8)%2)?"talk":"normal"; }
+  if(t<blinkUntil && f!=="happy") f="blink";
+  if(faceMat.map!==faceTex[f]){ faceMat.map=faceTex[f]; faceMat.needsUpdate=true; }
+
+  // lounge mood while dancing: lights dim a little, the garland pulses on the beat
+  const on = mode==="dance";
+  const pk=1-Math.exp(-dt*3);
+  chandLight.intensity=lerp(chandLight.intensity,on?1.2:1.7,pk); key.intensity=lerp(key.intensity,on?0.6:0.75,pk);
+  if(lampShade) lampShade.emissiveIntensity=lerp(lampShade.emissiveIntensity,on?1.1:1.6,pk);
+  const glowK=chandLight.intensity/1.7*(0.97+0.03*Math.sin(t*9.3)*Math.sin(t*3.1)); // faint filament flicker
+  halos.forEach((h,i)=>{ h.material.opacity=(i===halos.length-1?0.22:0.85)*glowK; });
+  updateDust(t, dt);
+  bulbs.forEach((b,i)=>{ const s=on?0.45+0.55*kneeDip*(i%2?1:0.6):0.75+0.25*Math.sin(t*1.5+b.userData.phase); b.material.color.copy(b.userData.base).multiplyScalar(s); });
+
+  controls.update();
+  shakeAmp*=Math.exp(-dt*9);
+  const sx=(Math.random()*2-1)*shakeAmp, sy=(Math.random()*2-1)*shakeAmp*0.7;
+  camera.position.x+=sx; camera.position.y+=sy;
+  renderer.render(scene,camera);
+  camera.position.x-=sx; camera.position.y-=sy;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ================= SOUND: deep house groove, 122 BPM (Web Audio, starts from a tap) ================= */
+let soundOn=true;
+const music=(()=>{
+  let ctx=null, timer=0, step=0, next=0, t0=0, master=null, noise=null, verb=null;
+  const S16=60/BPM/4;
+  const hz=n=>440*Math.pow(2,(n-69)/12);
+  // Am7 – Dm9 – Fmaj7 – Em7, one chord per bar
+  const CH=[{root:45,notes:[57,60,64,67]},{root:50,notes:[53,57,60,64]},{root:41,notes:[57,60,64,65]},{root:40,notes:[55,59,62,64]}];
+  const BASS=[null,null,0,null, null,null,0,12, null,null,0,null, null,7,0,null]; // offbeat house bassline (semitones above root)
+  const STABS=[3,10];
+  function init(){
+    if(ctx) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; ctx=new AC();
+    const comp=ctx.createDynamicsCompressor(); comp.threshold.value=-14; comp.ratio.value=4; comp.connect(ctx.destination);
+    master=ctx.createGain(); master.gain.value=0.5; master.connect(comp);
+    const len=ctx.sampleRate; noise=ctx.createBuffer(1,len,ctx.sampleRate); const d=noise.getChannelData(0); for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+    // short room reverb for claps and keys
+    const ir=ctx.createBuffer(2,ctx.sampleRate*1.2,ctx.sampleRate);
+    for(let c=0;c<2;c++){ const x=ir.getChannelData(c); for(let i=0;i<x.length;i++) x[i]=(Math.random()*2-1)*Math.pow(1-i/x.length,3); }
+    verb=ctx.createConvolver(); verb.buffer=ir; const vg=ctx.createGain(); vg.gain.value=0.22; verb.connect(vg).connect(master);
+  }
+  function env(g,t,a,peak,dec){ g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(peak,t+a); g.gain.exponentialRampToValueAtTime(0.0001,t+a+dec); }
+  function kick(t){ const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.setValueAtTime(125,t); o.frequency.exponentialRampToValueAtTime(48,t+0.09); env(g,t,0.003,0.95,0.32); o.connect(g).connect(master); o.start(t); o.stop(t+0.4); }
+  function noiseHit(t,type,freq,q,peak,dec,send){ const s=ctx.createBufferSource(); s.buffer=noise; s.loop=true; const f=ctx.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=q; const g=ctx.createGain(); env(g,t,0.002,peak,dec); s.connect(f).connect(g).connect(master); if(send) g.connect(verb); s.start(t,Math.random()); s.stop(t+dec+0.05); }
+  function clap(t){ [0,0.012,0.024].forEach(o=>noiseHit(t+o,"bandpass",1400,1.2,0.35,0.11,true)); }
+  function bass(t,n){ const o=ctx.createOscillator(), o2=ctx.createOscillator(), f=ctx.createBiquadFilter(), g=ctx.createGain(); o.type="sine"; o2.type="sawtooth"; o.frequency.value=o2.frequency.value=hz(n); f.type="lowpass"; f.frequency.setValueAtTime(700,t); f.frequency.exponentialRampToValueAtTime(180,t+0.18); const m=ctx.createGain(); m.gain.value=0.25; o2.connect(m).connect(f); o.connect(f); f.connect(g).connect(master); env(g,t,0.006,0.55,0.2); o.start(t); o2.start(t); o.stop(t+0.3); o2.stop(t+0.3); }
+  function keys(t,notes){ notes.forEach(n=>{ const o=ctx.createOscillator(), o2=ctx.createOscillator(), g=ctx.createGain(), f=ctx.createBiquadFilter(); o.type="triangle"; o2.type="sine"; o.frequency.value=hz(n); o2.frequency.value=hz(n)*2.001; f.type="lowpass"; f.frequency.value=2400; o.connect(f); const m=ctx.createGain(); m.gain.value=0.3; o2.connect(m).connect(f); f.connect(g); g.connect(master); g.connect(verb); env(g,t,0.004,0.07,0.32); o.start(t); o2.start(t); o.stop(t+0.4); o2.stop(t+0.4); }); }
+  function tick(){
+    while(next<ctx.currentTime+0.15){
+      const s=step%16, bar=Math.floor(step/16)%4, ch=CH[bar], intro=step<32;
+      if(s%4===0) kick(next);
+      if(s===4||s===12) clap(next);
+      if(s%4===2) noiseHit(next,"highpass",8000,0.7,0.22,0.13,false);          // open hat on the offbeat
+      else if(!intro) noiseHit(next,"highpass",10000,0.7,0.06,0.03,false);     // soft 16th shakers
+      if(BASS[s]!=null) bass(next,ch.root+BASS[s]);
+      if(!intro && STABS.includes(s)) keys(next,ch.notes);
+      next+=S16; step++;
+    }
+  }
+  return {
+    start(){ if(!soundOn) return; init(); if(!ctx) return; ctx.resume(); if(timer) return; step=0; t0=next=ctx.currentTime+0.06; timer=setInterval(tick,30); tick(); },
+    stop(){ if(timer){ clearInterval(timer); timer=0; } },
+    beat(){ return (timer&&ctx) ? Math.max(0,(ctx.currentTime-t0))*BPM/60 : null; }
+  };
+})();
+
+/* ================= UI helpers ================= */
+const bubbleEl=$("bubble"), toastEl=$("toast"), heardEl=$("heard"), micBtn=$("micBtn"), micLabel=$("micLabel");
+let bubbleTimer=0, toastTimer=0;
+function say(text, holdMs){
+  clearTimeout(bubbleTimer); bubbleEl.classList.remove("off"); bubbleEl.textContent=text;
+  if(holdMs) bubbleTimer=setTimeout(()=>bubbleEl.classList.add("off"), holdMs);
+}
+function sayThinking(){ clearTimeout(bubbleTimer); bubbleEl.classList.remove("off"); bubbleEl.innerHTML='<span class="dots"><i></i><i></i><i></i></span>'; }
+function hideBubbleLater(ms){ clearTimeout(bubbleTimer); bubbleTimer=setTimeout(()=>bubbleEl.classList.add("off"), ms); }
+function toast(text, ms=5000){ clearTimeout(toastTimer); toastEl.textContent=text; toastEl.hidden=false; toastTimer=setTimeout(()=>toastEl.hidden=true, ms); }
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+
+/* ================= Voice & brain: the ElevenLabs agent "Uncle Jimbo" =================
+   The agent listens, thinks (Claude) and speaks with Jimbo's designed voice; it handles
+   turn-taking and interruptions itself. The page only animates him and reports what happens. */
+const AGENT_ID="agent_5101m7ytt9kcfeybnrcty2jemrm0";
+let convo=null, connecting=false, localSpeaking=false, reacting=false, busy=false, micMuted=false, lastActivity=0;
+let heard="", partial="";
+function stopSpeaking(){}
+async function speak(){ return false; }
+// Without the agent (offline, mic refused) taps still get a silent speech bubble
+function react(modeName, ms, lines){ setMode(modeName, ms); if(convo) return; say(pick(lines)); hideBubbleLater(2200); }
+const LINES={
+  belly:["Ouf !","Hé, pas le ventre !","Oh là, doucement !","Ouille, mon gâteau !"],
+  head:["Aïe ! Mes oreilles !","Ouille !","Hé, ça décoiffe !"],
+  legs:["Aïe, mon genou !","Hé, mes chaussures neuves !","Ouille !"],
+  fallen:["Hé ! C'est pas du jeu, ça !","Ouh là… mon dos…","Bon. Personne n'a rien vu.","Tu vas me le payer en gâteau, ça !"]
+};
+
+/* ===== Left click = punch · quick left-drag across his legs = leg sweep · right-drag = camera ===== */
+controls.mouseButtons = { LEFT: -1, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+controls.touches = { ONE: -1, TWO: THREE.TOUCH.DOLLY_PAN };
+controls.enablePan = false;
+renderer.domElement.addEventListener("contextmenu", e=>e.preventDefault());
+
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(); let downAt=null, drag=null;
+let lastPunch=0, combo=0, lastOuch=0;
+const guestEvents={punches:0, sweeps:0};
+const _v=new THREE.Vector3();
+// screen rectangle covering his legs and feet (shorts hem down to the shoes), from the current pose
+function legRect(){
+  const r=renderer.domElement.getBoundingClientRect(); let l=1e9, rr=-1e9, tp=1e9, bt=-1e9;
+  for(const x of [-0.46,0.46]) for(const y of [0.0,0.72]) for(const z of [-0.25,0.35]){
+    _v.set(x,y,z); jimbo.localToWorld(_v); _v.project(camera);
+    const sx=r.left+(_v.x*0.5+0.5)*r.width, sy=r.top+(-_v.y*0.5+0.5)*r.height;
+    l=Math.min(l,sx); rr=Math.max(rr,sx); tp=Math.min(tp,sy); bt=Math.max(bt,sy);
+  }
+  return {l, r:rr, t:tp, b:bt, w:rr-l};
+}
+function startSweep(s){
+  if(fall || !jimbo) return;
+  if(localSpeaking||talking) stopSpeaking();
+  talking=false; reacting=false;
+  fall={t0:performance.now(), s, landed:false, spoke:false};
+  setMode("fall");
+  guestEvents.sweeps++;
+  thud(false);
+  const lp=jimbo.localToWorld(new THREE.Vector3(-s*0.15,0.12,0.2)); spawnImpact(lp,false);
+}
+function checkSweep(){
+  if(!drag || fall || drag.pts.length<2) return;
+  const p1=drag.pts[drag.pts.length-1], p0=drag.pts[drag.pts.length-2], R=legRect();
+  const inY=y=>y>=R.t-10 && y<=R.b+10;
+  // fast swipe that jumps clean over the legs between two pointer events
+  if(inY((p0.y+p1.y)/2) && ((p0.x<R.l && p1.x>R.r) || (p0.x>R.r && p1.x<R.l))){ startSweep(Math.sign(p1.x-p0.x)); return; }
+  const inside=p1.x>=R.l && p1.x<=R.r && inY(p1.y);
+  if(inside && !drag.entry) drag.entry={x:p1.x, t:p1.t};
+  if(drag.entry){
+    const dx=p1.x-drag.entry.x, dt=Math.max(1,p1.t-drag.entry.t), speed=Math.abs(dx)/dt*1000;
+    if(Math.abs(dx)>=R.w*0.55 && speed>450){ startSweep(Math.sign(dx)); return; }
+    if(!inside && Math.abs(dx)<R.w*0.55) drag.entry=null;
+  }
+}
+renderer.domElement.addEventListener("pointerdown",e=>{
+  if(e.button!==0) return;
+  downAt={x:e.clientX,y:e.clientY,t:performance.now()};
+  drag={pts:[{x:e.clientX,y:e.clientY,t:performance.now()}], entry:null};
+  try{ renderer.domElement.setPointerCapture(e.pointerId); }catch(err){}
+});
+renderer.domElement.addEventListener("pointermove",e=>{
+  if(!drag || !(e.buttons&1)) return;
+  drag.pts.push({x:e.clientX,y:e.clientY,t:performance.now()}); if(drag.pts.length>16) drag.pts.shift();
+  checkSweep();
+});
+renderer.domElement.addEventListener("pointerup",e=>{
+  if(e.button!==0) return;
+  drag=null;
+  if(!downAt) return; const moved=Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y), dt=performance.now()-downAt.t; downAt=null;
+  if(moved>10||dt>450||fall) return;
+  const r=renderer.domElement.getBoundingClientRect();
+  ndc.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1);
+  ray.setFromCamera(ndc,camera);
+  const hits=ray.intersectObject(rig?rig.model:jimbo,true);
+  if(!hits.length) return;
+  let zone;
+  if(rig) zone=boneZone(hits[0]);
+  else { const o=hits[0].object; let p=o; while(p&&!p.userData.zone) p=p.parent; zone=p?p.userData.zone:"belly"; }
+  punch(hits[0].point, zone);
+});
+/* A punch: a velocity kick on damped springs, shaped by where it lands and which side,
+   so the body recoils, twists and settles back on its own, and quick combos stack up. */
+function punch(point, zone){
+  const now=performance.now();
+  combo = now-lastPunch<450 ? Math.min(combo+1,5) : 0; lastPunch=now;
+  const str=1+combo*0.14;
+  const lp=jimbo.worldToLocal(point.clone()), x=THREE.MathUtils.clamp(lp.x/0.45,-1,1);
+  if(zone==="head"){
+    H.headX.vel+=-10*str; H.headZ.vel+=x*9*str; H.tilt.vel+=-2.2*str; H.twist.vel+=x*2.5*str; H.push.vel+=-0.25*str;
+  } else if(zone==="arms"){
+    H.twist.vel+=x*6*str; H.side.vel+=-x*1.6*str; H.arm.vel+=4*str; H.tilt.vel+=-1.4*str; H.headZ.vel+=x*3;
+  } else if(zone==="legs"){
+    if(x<0) H.legR.vel+=7*str; else H.legL.vel+=7*str;
+    H.tilt.vel+=2.0*str; H.side.vel+=x*1.2*str; H.squash.vel+=-1.2*str; H.headX.vel+=3;
+  } else { // belly
+    H.squash.vel+=-6*str; H.tilt.vel+=-3.6*str; H.push.vel+=-0.7*str; H.twist.vel+=x*4*str; H.arm.vel+=6.5*str; H.headX.vel+=5*str;
+  }
+  thud(false); shakeAmp=Math.max(shakeAmp,0.012+0.004*combo);
+  const toCam=camera.position.clone().sub(point).normalize().multiplyScalar(0.06);
+  spawnImpact(point.clone().add(toCam), false);
+  guestEvents.punches++;
+  if(mode==="dance") setMode(restMode());
+  if(now-lastOuch>7000 && Math.random()<0.4 && !busy && !localSpeaking){ lastOuch=now; react(mode, 0, LINES[zone==="head"?"head":zone==="legs"?"legs":"belly"]); }
+}
+
+/* Dance toggle: starts the house groove, a second tap stops it */
+$("danceBtn").addEventListener("click",()=>{
+  if(mode==="dance"){ setMode(restMode()); return; }
+  setMode("dance");
+});
+$("soundBtn").addEventListener("click",e=>{ soundOn=!soundOn; e.currentTarget.setAttribute("aria-pressed",String(soundOn)); if(!soundOn) stopSpeaking(); });
+const typeForm=$("typeForm"), msg=$("msg");
+$("kbBtn").addEventListener("click",e=>{ const open=typeForm.hidden; typeForm.hidden=!open; e.currentTarget.setAttribute("aria-pressed",String(open)); if(open) msg.focus(); });
+typeForm.addEventListener("submit",e=>{ e.preventDefault(); const v=msg.value; msg.value=""; send(v,false); });
+
+/* ================= Conversation with the ElevenLabs agent ================= */
+const ELA = window.ElevenLabsClient;
+const IDLE_END_MS = 120000;   // hang up after 2 minutes of silence to save ElevenLabs minutes
+function setMic(){
+  let st, label;
+  if(!ELA){ st="off"; label="La voix de Jimbo n'a pas pu se charger"; }
+  else if(connecting){ st="sleep"; label="Jimbo arrive…"; }
+  else if(!convo){ st="sleep"; label="Touche l'écran pour réveiller Jimbo"; }
+  else if(micMuted){ st="muted"; label="Micro coupé · touche pour le rallumer"; }
+  else if(localSpeaking){ st="listening"; label="Jimbo parle… coupe-lui la parole si tu veux"; }
+  else { st="listening"; label="Je t'écoute, parle quand tu veux"; }
+  listening = !!convo && !micMuted;
+  micBtn.dataset.state=st; micLabel.textContent=label;
+  micBtn.setAttribute("aria-label", st==="muted"?"Rallumer le micro":convo?"Couper le micro":"Réveiller Jimbo");
+}
+function showUser(text){ heardEl.textContent=text; heardEl.hidden=false; clearTimeout(showUser.t); showUser.t=setTimeout(()=>{ heardEl.hidden=true; }, 2600); }
+function openKeyboard(){ typeForm.hidden=false; $("kbBtn").setAttribute("aria-pressed","true"); }
+
+async function wake(){
+  // called from a click / key press: browsers only allow sound and the mic after a gesture
+  if(convo || connecting) return;
+  if(!ELA){ toast("La voix de Jimbo n'a pas pu se charger. Vérifie ta connexion internet."); return; }
+  connecting=true; setMic();
+  try{
+    await navigator.mediaDevices.getUserMedia({audio:true});
+    convo = await ELA.Conversation.startSession({
+      agentId: AGENT_ID,
+      connectionType: "webrtc",
+      stripAudioTags: true,
+      clientTools: {
+        danser: ({action})=>{ if(action==="arreter"){ if(mode==="dance") setMode(restMode()); } else if(!fall){ setMode("dance", 12000); } return "ok"; }
+      },
+      onConnect: ()=>{ connecting=false; lastActivity=performance.now(); setMic(); },
+      onDisconnect: ()=>{ convo=null; connecting=false; localSpeaking=false; talking=false; if(mode==="talk") setMode(restMode()); setMic(); },
+      onError: (m)=>{ console.warn("ElevenLabs:", m); },
+      onModeChange: ({mode:m})=>{
+        lastActivity=performance.now();
+        localSpeaking = m==="speaking"; talking = localSpeaking;
+        if(talking){ if(mode==="idle"||mode==="think"||mode==="listen") setMode("talk"); }
+        else if(mode==="talk") setMode(restMode());
+        setMic();
+      },
+      onMessage: ({source, message})=>{
+        lastActivity=performance.now();
+        if(!message) return;
+        if(source==="ai"){ say(message); hideBubbleLater(Math.max(3500, message.length*75)); }
+        else if(!/^\(Action/.test(message)) showUser(message);
+      }
+    });
+    connecting=false;
+    if(micMuted) convo.setMicMuted(true);
+    if(!soundOn && convo.setVolume) convo.setVolume({volume:0});
+    setMic();
+  }catch(e){
+    connecting=false; convo=null; setMic();
+    if(e && (e.name==="NotAllowedError"||e.name==="SecurityError")){ toast("Le micro est bloqué. Autorise-le dans le navigateur, ou écris à Jimbo avec le clavier.", 7000); openKeyboard(); }
+    else toast("Impossible de joindre Jimbo pour l'instant. Vérifie ta connexion internet et réessaie.", 6000);
+  }
+}
+async function send(text){
+  text=(text||"").trim(); if(!text) return;
+  showUser(text);
+  if(!convo){ await wake(); }
+  if(convo){ lastActivity=performance.now(); convo.sendUserMessage(text); }
+}
+function toggleMute(){
+  if(!convo){ wake(); return; }
+  micMuted=!micMuted; convo.setMicMuted(micMuted); setMic();
+}
+micBtn.addEventListener("click",toggleMute);
+// the first touch or key press anywhere wakes Jimbo up (the mic button handles its own click)
+addEventListener("pointerdown",e=>{ if(micBtn.contains(e.target)) return; if(!convo && !connecting) wake(); }, true);
+addEventListener("keydown",e=>{
+  const tag=(document.activeElement&&document.activeElement.tagName)||"";
+  if(e.code==="Space" && !e.repeat && tag!=="INPUT" && tag!=="TEXTAREA" && tag!=="BUTTON"){ e.preventDefault(); toggleMute(); return; }
+  if(tag!=="INPUT" && !convo && !connecting) wake();
+}, true);
+$("soundBtn").addEventListener("click",()=>{ if(convo && convo.setVolume) convo.setVolume({volume: soundOn?1:0}); });
+
+// tell the agent about punches and sweeps so he can react in his own voice
+let lastPunchSent=0;
+setInterval(()=>{
+  if(!convo) { guestEvents.punches=0; guestEvents.sweeps=0; return; }
+  const now=performance.now();
+  if(guestEvents.sweeps>0){
+    guestEvents.sweeps=0;
+    if(!localSpeaking && Math.random()<0.6) convo.sendUserMessage("(Action : l'invité vient de te faire une balayette, tu es tombé sur les fesses et tu te relèves. Réagis en une phrase courte.)");
+    else convo.sendContextualUpdate("L'invité vient de te faire une balayette : tu es tombé sur les fesses et tu t'es relevé.");
+    lastActivity=now;
+  }
+  if(guestEvents.punches>0 && now-lastPunch>1200){
+    const n=guestEvents.punches; guestEvents.punches=0;
+    convo.sendContextualUpdate(n===1?"L'invité vient de te donner un petit coup.":`L'invité vient de te donner ${n} petits coups d'affilée.`);
+    if(n>=4 && !localSpeaking && now-lastPunchSent>15000){ lastPunchSent=now; convo.sendUserMessage(`(Action : l'invité vient de te donner ${n} coups d'affilée. Réagis en une phrase courte.)`); }
+    lastActivity=now;
+  }
+  if(!localSpeaking && now-lastActivity>IDLE_END_MS){
+    convo.endSession(); toast("Jimbo fait une petite sieste pour économiser tes minutes. Touche l'écran pour le réveiller.", 7000);
+  }
+}, 400);
+// hang up when the tab is closed
+addEventListener("pagehide",()=>{ if(convo) convo.endSession(); });
+
+loadSalon();
+setMic();
+if(!ELA) toast("La voix de Jimbo n'a pas pu se charger. Vérifie ta connexion internet.", 7000);
+})();
+</script>
+</html>
